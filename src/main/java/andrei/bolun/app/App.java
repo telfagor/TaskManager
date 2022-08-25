@@ -1,39 +1,71 @@
 package andrei.bolun.app;
 
 import andrei.bolun.model.User;
-import andrei.bolun.service.TaskService;
-import andrei.bolun.service.UserService;
-import andrei.bolun.storage.UserRepository;
+import andrei.bolun.model.Task;
+import andrei.bolun.service.TaskServiceImpl;
+import andrei.bolun.service.UserServiceImpl;
+import andrei.bolun.service.ValidationException;
 
-import java.util.Map;
+import java.util.List;
 
 public class App {
     
     public static void main(String[] args) {
-        UserRepository userRepository = new UserRepository();
-        UserService userService = new UserService();
-        TaskService taskService = new TaskService();
-        Map<String, User> users = userRepository.getUsers();
+        UserServiceImpl userService = new UserServiceImpl();
+        TaskServiceImpl taskService = new TaskServiceImpl();
 
-        if ("-showAllUsers".equals(args[0])) {
-            userService.showUsers();
-        } else if ("-createUser".equals(args[0])) {
+        if ("-createUser".equals(args[0])) {
             User user = new User();
-            if (args[1].startsWith("-fn")) {
-                String firstName = args[1].split("=")[1];
-                user.setFirstName(firstName);
-            } else if (args[2].startsWith("-ln")) {
-                String lastName = args[2].split("=")[1];
-                user.setLastName(lastName);
-            } else if (args[3].startsWith("-un")) {
-                String userName = args[3].split("=")[1];
-                user.setUserName(userName);
+            for (String str : args) {
+                if (str.startsWith("-fn")) {
+                    user.setFirstName(str.split("=")[1]);
+                } else if (str.startsWith("-ln")) {
+                    user.setLastName(str.split("=")[1]);
+                } else if (str.startsWith("-un")) {
+                    user.setUserName(str.split("=")[1]);
+                }
             }
-            userService.createNewUser(user);
-        } else if ("showUserTasks".equals(args[0])) {
+            try {
+                userService.createUser(user);
+                System.out.println("New user added!");
+            } catch (ValidationException ex) {
+                System.out.println(ex.getMessage());
+            }
+
+        } else if ("-showAllUsers".equals(args[0])) {
+            List<User> users = userService.getUsers();
+            if (!users.isEmpty()) {
+                users.forEach(System.out::println);
+            } else {
+                System.out.println("No users have been added yet!");
+            }
+        } else if ("-addTask".equals(args[0])) {
+            String userName = null; //приходится userName присвоить null
+            Task task = new Task();
+            for (String str : args) {
+                if (str.startsWith("-un")) {
+                    userName = str.split("=")[1];
+                } else if (str.startsWith("-tt")) {
+                    task.setName(str.split("=")[1]);
+                } else if (str.startsWith("-td")) {
+                    task.setDescription(str.split("=")[1]);
+                }
+                try {
+                    taskService.createTask(userName, task);
+                    System.out.println("New task added!");
+                } catch (ValidationException ex) {
+                    System.out.println(ex.getMessage());
+                }
+            }
+        } else if ("-showTasks".equals(args[0])) {
             if (args[1].startsWith("-un")) {
                 String userName = args[1].split("=")[1];
-                taskService.showUserTasks(userName);
+                List<Task> userTasks = taskService.getUserTasks(userName);
+                if (!userTasks.isEmpty()) {
+                    userTasks.forEach(System.out::println);
+                } else {
+                    System.out.println("This user does not exist!");
+                }
             }
         }
     }
